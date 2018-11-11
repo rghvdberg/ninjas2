@@ -285,7 +285,7 @@ void NinjasPlugin::setState ( const char* key, const char* value )
       const char* p = value;
       char * end;
       bool start = true;
-     // std::cout << "Do something clever with " << std::string ( value ) << std::endl;
+      // std::cout << "Do something clever with " << std::string ( value ) << std::endl;
       for ( int l = std::strtol ( p, &end,10 ), index = 0; p != end; l = std::strtol ( p, &end, 10 ) )
         {
           p = end;
@@ -470,9 +470,6 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
               int data1 = midiEvents[curEventIndex].data[1];// note number
               int data2 = midiEvents[curEventIndex].data[2]; //
 
-
-
-
               switch ( message )
                 {
                 case 0x80 :   // note off
@@ -483,7 +480,7 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
 
                     break; // note wasn't playing anyway .. ignore
                   if ( voice_playing )
-                    voices[index].adsr.adsr_stage = stage_of_ADSR::RELEASE;
+                    voices[index].active = false;
                   break;
                 }
 
@@ -497,52 +494,9 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
                     }
                   // new note .. let's activate
                   voices[index].active = true;
-                  voices[index].velocity = data2;
-                  voices[index].gain = ( float ) data2 / 127.0f;
-
-                  // init adsr
-                  voices[index].adsr.adsr_stage = ATTACK;
-                  voices[index].adsr.adsr_gain = 0.0f;
-
-                  // set adsr values
-                  voices[index].adsr.attack  = p_Attack[index];
-                  voices[index].adsr.decay   = p_Decay[index];
-                  voices[index].adsr.sustain = p_Sustain[index];
-                  voices[index].adsr.release = p_Release[index];
-
-                  // calculate gain
-                  voices[index].adsr.attack_gain  = ( 1.0f / voices[index].adsr.attack )  / samplerate;
-                  voices[index].adsr.decay_gain   = - ( 1.0f / voices[index].adsr.decay )  / samplerate;
-                  voices[index].adsr.release_gain = ( 1.0f / voices[index].adsr.release )  / samplerate;
-
-                  // check playmode
-                  // if LOOP_REV or ONE_SHOT_REV set playback indici to end of slice
-                  if ( a_slices[index].playmode == LOOP_REV || a_slices[index].playmode == ONE_SHOT_REV )
-                    {
-                      voices[index].playbackIndex = a_slices[index].sliceEnd - a_slices[index].sliceStart;
-                      voices[index].multiplierIndex = ( a_slices[index].sliceEnd - a_slices[index].sliceStart ) / sampleChannels;
-                    }
-                  else     // playmode is forward .. playback indici to start
-                    {
-                      voices[index].playbackIndex = 0;
-                      voices[index].multiplierIndex = 0;
-                    }
-
-                  float transpose = ( pitchbend/pitchbend_step ) -12;
-                  voices[index].multiplier=pow ( 2.0, transpose / 12.0 );
-                  // all set . add to stack
-                  //stack.add_Voice(&voices[index]);
-                  //
+                  voices[index].playbackIndex = 0;
                   break;
-
                 } // case 0x90
-
-                case 0xe0:   // pitchbend
-                {
-                  pitchbend = ( data2 * 128 ) + data1;
-                  break;
-                }
-
                 } // switch
 
               curEventIndex++; // we've processed a midi event,increase index so we know which midi event to process next
@@ -551,8 +505,6 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
           int voice_count {0};
           for ( int i {0} ; i < slices ; i++ )
             {
-
-
               if ( voices[i].active )
                 {
                   voice_count++;
@@ -565,53 +517,6 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
                   float* sample = &sampleVector.at ( sliceStart+pos );
                   float sampleL { *sample };
                   float sampleR { * ( sample + ( sampleChannels -1 ) ) };
-                  // process adsr to get the gain back
-
-                  // float adsr_gain = voices[i].adsr.ADSRrun ( &voices[i].active );
-                  switch ( voices[i].adsr.adsr_stage )
-                    {
-                    case ATTACK:
-                      if ( voices[i].adsr.adsr_gain < 1.0f )
-                        voices[i].adsr.adsr_gain += voices[i].adsr.attack_gain;
-                      else
-                        {
-                          voices[i].adsr.adsr_gain = 1.0f;
-                          voices[i].adsr.adsr_stage = DECAY;
-                        }
-                      break;
-                      // now go into decayg
-                    case DECAY:
-                      if ( voices[i].adsr.adsr_gain > voices[i].adsr.sustain )
-                        voices[i].adsr.adsr_gain += voices[i].adsr.decay_gain;
-                      else
-                        {
-                          voices[i].adsr.adsr_gain = voices[i].adsr.sustain;
-                          voices[i].adsr.adsr_stage = SUSTAIN;
-                        }
-                      break;
-                      // sustain
-                    case SUSTAIN:
-                      //	return adsr_gain;
-                      break;
-                      // release phase ; should be triggered by note off
-                    case RELEASE:
-                      if ( voices[i].adsr.adsr_gain > 0.0f )
-                        voices[i].adsr.adsr_gain += voices[i].adsr.release_gain;
-                      else
-                        {
-                          // gain might have dipped below 0.0
-                          voices[i].adsr.adsr_gain = 0.0f;
-                          voices[i].active = false;
-                        }
-                      break;
-
-                    }
-
-
-                  gain = voices[i].gain * voices[i].adsr.adsr_gain;
-
-                  sampleL = sampleL * gain;
-                  sampleR = sampleR * gain;
 
                   // put samples in mixer
 
@@ -620,71 +525,13 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
                   mixer.channels++;
 
                   // increase sample reading position
-                  float transpose = ( pitchbend/pitchbend_step ) -12;
-                  voices[i].multiplier=pow ( 2.0, transpose / 12.0 );
-                  float multiplier = voices[i].multiplier;
+                  voices[i].playbackIndex = voices[i].playbackIndex + 2;
 
-                  // set multiplier to negative if direction is reverse
-
-                  if ( a_slices[i].playmode == LOOP_REV || a_slices[i].playmode == ONE_SHOT_REV )
-                    multiplier=-multiplier;
-
-                  // add the multiplier, when it's negative this should substract
-
-                  voices[i].multiplierIndex += multiplier;
-                  int tmp = ( int ) voices[i].multiplierIndex;
-                  tmp = tmp * sampleChannels;
-
-                  // check bounderies according to playmode: loop or oneshot.
-
-                  switch ( a_slices[i].playmode )
+                  if ( sliceStart + voices[i].playbackIndex >= ( sliceEnd-sampleChannels ) )
                     {
-                    case LOOP_FWD:
-                    {
-                      if ( sliceStart + tmp >= ( sliceEnd-sampleChannels ) )
-                        {
-                          voices[i].playbackIndex = 0;
-                          voices[i].multiplierIndex = 0;
-                        }
-                      else
-                        {
-                          voices[i].playbackIndex = tmp;
-                        }
-                      break;
+                      voices[i].playbackIndex = 0;
+                      voices[i].active = false;
                     }
-
-                    case LOOP_REV:
-                    {
-                      if ( sliceStart + tmp <= sliceStart )
-                        {
-                          voices[i].playbackIndex = sliceEnd - sliceStart;
-                          voices[i].multiplierIndex = ( sliceEnd -sliceStart ) / sampleChannels;
-                        }
-                      else
-                        voices[i].playbackIndex = tmp;
-                      break;
-                    }
-                    case ONE_SHOT_FWD:
-                    {
-                      if ( sliceStart + tmp >= ( sliceEnd-sampleChannels ) )
-                        {
-                          voices[i].active=false;
-                        }
-                      else voices[i].playbackIndex = tmp;
-                      break;
-                    }
-                    case ONE_SHOT_REV:
-                    {
-                      if ( sliceStart + tmp <= sliceStart )
-                        {
-                          voices[i].active=false;
-                        }
-                      else
-                        voices[i].playbackIndex = tmp;
-                      break;
-                    }
-
-                    } //switch
                 }// if voices[i].active
             } // end for loop through active voices
 
@@ -695,8 +542,8 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
               ++mixer.channels;
             }
 
-          float left = mixer.leftChannel / ( float ) mixer.channels;
-          float right = mixer.rightChannel / ( float ) mixer.channels;
+          float left = mixer.leftChannel;  // / ( float ) mixer.channels;
+          float right = mixer.rightChannel; // / ( float ) mixer.channels;
           mixer.channels = 0;
           outL[framesDone] = left;
           outR[framesDone] = right;
@@ -841,7 +688,7 @@ int NinjasPlugin::loadSample ( std::string fp )
 
   // check if samplerate != host_samplerate
   if ( file_samplerate != samplerate )
-
+    std::cout << "resampling from " << file_samplerate << " to " << samplerate << std::endl;
     {
       // temporary sample vector
       std::vector<float> tmp_sample_vector = sampleVector;
