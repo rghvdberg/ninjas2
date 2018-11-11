@@ -110,97 +110,16 @@ private:
   float p_Attack[128], p_Decay[128], p_Sustain[128], p_Release[128];
   float p_OneShotFwd[128], p_OneShotRev[128], p_LoopFwd[128], p_LoopRev[128];
   float p_Grid[16];
-
-  // slices
-  float sliceStart[128], sliceEnd[128];
-
-  enum SLICEMODE
-  {
-    RAW,
-    ONSETS,
-    MANUAL
-  };
-  SLICEMODE enum_slicemode;
-  //temp FIXME
-  int slicemode;
-
-  enum stage_of_ADSR
-  {
-    ATTACK,
-    DECAY,
-    SUSTAIN,
-    RELEASE
-  };
-
-  enum slicePlayMode
-  {
-    ONE_SHOT_FWD ,
-    ONE_SHOT_REV,
-    LOOP_FWD,
-    LOOP_REV
-  };
-
-  struct ADSR
-  {
-    float attack; // time value how long the gain takes from 0.0 to 1.0f ..
-    float attack_gain; // each frame this is added to gain of note (max 1.0f)
-    float decay; // time value from decay (1.0f) to sustain
-    float decay_gain; // negative value, each frame this is subtracted from gain
-    float sustain; // gain value : 1.0f is max gain
-    float release; // time value : after note off , voice is active until release hits 0.0f
-    float release_gain; // negative value, each frame subtracted from gain until 0.0f
-    float adsr_gain; // multiply this by gain and we get the ... well gain
-    stage_of_ADSR adsr_stage;
-  };
-
-  struct Voice
-  {
-    int index;
-    bool active;
-    int channel;  //midi channel, channel is also linked to slice
-    int notenumber;
-    int velocity;
-    float gain; // linked to adsr
-    float multiplierIndex; // frame of slice (sample) playing
-    float multiplier;
-    int playbackIndex;
-    ADSR adsr ;
-  };
   
-  Voice voices[128];
-
-  struct Mixer
-  {
-    float leftChannel;
-    float rightChannel;
-    int channels;
-  };
-
-  Mixer mixer;
-  
-  struct Slice
-  {
-    unsigned long int sliceStart;
-    unsigned long int sliceEnd;
-    slicePlayMode playmode;
-    bool sliceActive;
-  };
-  
-  Slice a_slices[128];
-  int slices; // number of slices
-  int currentSlice;
-  
+  bool isPlaying = false;
+  bool bypass = true;
+  int playbackIndex = 0;
   // empty sample object
   std::vector<float> sampleVector; // this holds the sample data
   int sampleChannels;
   sf_count_t sampleSize; // in frames !!
 
-  int pitchbend;
-  int pitchbend_range;
-  float pitchbend_step;
-  float gain;
   std::string filepath; // = "";
-  bool bypass; // {true};
   std::vector<uint_t>onsets;
   double samplerate;
    
