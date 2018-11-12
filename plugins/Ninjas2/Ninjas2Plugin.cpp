@@ -341,10 +341,10 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
           // float* pointer will allow any amount of samples to be pulled in
           if (isPlaying)
 	  {
-          int pos = playbackIndex * 2;
+          int pos = playbackIndex * sampleChannels;
           float* sample = &sampleVector.at ( pos );
           float sampleL { *sample };
-          float sampleR { * ( sample + 1 ) };
+          float sampleR { * ( sample + sampleChannels -1 ) };
 	  outL[framesDone] = sampleL;
 	  outR[framesDone] = sampleR;
 
