@@ -959,6 +959,12 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
                               pos = 0;
                          }
 
+                         // Approximately a 4.5ms fade at 44khz
+                         int clickfadeSamples = 200;
+                         if (pos > (sliceEnd - clickfadeSamples)) {
+                              voices[i].adsr.adsr_stage = CLICKFADE;
+                         }
+
                          float* sample = &sampleVector.at ( sliceStart+pos );
                          float sampleL { *sample };
                          float sampleR { * ( sample + ( sampleChannels -1 ) ) };
@@ -999,7 +1005,17 @@ void NinjasPlugin::run ( const float**, float** outputs, uint32_t frames,       
                               }
                               break;
                          }
-
+                         // Clickfade: make sure that the end of the sample sounds nice.
+                         case CLICKFADE: {
+                              if (voices[i].adsr.adsr_gain > 0.0f) {
+                                   voices[i].adsr.adsr_gain += - float(sampleChannels) / clickfadeSamples;
+                              } else {
+                                   // gain might have dipped below 0.0
+                                   voices[i].adsr.adsr_gain = 0.0f;
+                                   voices[i].active = false;
+                              }
+                              break;
+                         }
                          }
 
                          gain = voices[i].gain * voices[i].adsr.adsr_gain;
