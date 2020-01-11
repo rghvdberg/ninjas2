@@ -30,7 +30,7 @@ ifneq ($(USE_SYSTEM_AUBIO),true)
 endif
 
 ifeq ($(HAVE_OPENGL),true)
-	$(MAKE) -C dpf/dgl
+	$(MAKE) -C dpf/dgl DGL_FLAGS="$(DGL_FLAGS) -DFONS_USE_FREETYPE $(shell $(PKG_CONFIG) --cflags freetype2)"
 endif
 
 plugins: libs
