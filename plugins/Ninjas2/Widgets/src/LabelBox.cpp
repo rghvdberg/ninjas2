@@ -79,9 +79,7 @@ float LabelBox::getFontSize()
 
 void LabelBox::setText(const std::string text)
 {
-    printf("setText(%s)\n",text.c_str());
     fText = text;
- //   printf("fText =%s\n",fText);
 }
 
 const std::string LabelBox::getText()
