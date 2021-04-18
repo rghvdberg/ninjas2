@@ -513,10 +513,14 @@ void NinjasPlugin::setState ( const char* key, const char* value )
     if ( strcmp ( key, "sliceButton" ) == 0 ) {
         if ( strcmp ( value, "true" ) == 0 ) {
             std::fill_n ( Programs[programNumber].a_slices, 128, Slice() );
-            std::fill_n ( Programs[programNumber].Attack, 128, 0.001f );
-            std::fill_n ( Programs[programNumber].Decay,128, 0.001f );
-            std::fill_n ( Programs[programNumber].Sustain, 128, 1.0f );
-            std::fill_n ( Programs[programNumber].Release, 128, 0.001f );
+            float attack = getParameterValue( paramAttack );
+            float decay = getParameterValue( paramDecay );
+            float sustain = getParameterValue( paramSustain );
+            float release = getParameterValue( paramRelease );
+            std::fill_n ( Programs[programNumber].Attack, 128, attack );
+            std::fill_n ( Programs[programNumber].Decay,128, decay );
+            std::fill_n ( Programs[programNumber].Sustain, 128, sustain );
+            std::fill_n ( Programs[programNumber].Release, 128, release );
             switch ( slicemode ) {
             case RAW:
                 createSlicesRaw();
