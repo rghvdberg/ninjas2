@@ -6,23 +6,14 @@
 # Modified by Clearly Broken Software
 #
 
-include dpf/Makefile.base.mk
+include $(wildcard dpf/Makefile.base.mk)
 
 all: libs plugins gen
 
-define MISSING_SUBMODULES_ERROR
-
-Cannot find DGL! Please run "make submodules" to clone the missing submodules, then retry building the plugin.
-
-endef
-
 # --------------------------------------------------------------
-submodules: 
-	git submodule update --init --recursive
-
 libs:
 ifeq (,$(wildcard dpf/dgl))
-	$(error $(MISSING_SUBMODULES_ERROR))
+	git submodule update --init --recursive
 endif
 
 ifneq ($(USE_SYSTEM_AUBIO),true)
@@ -74,4 +65,3 @@ endif
 # --------------------------------------------------------------
 
 .PHONY: plugins
-
